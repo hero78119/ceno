@@ -44,7 +44,7 @@ fn bench_e2e(c: &mut Criterion) {
         ..CENO_PLATFORM
     };
 
-    for max_steps in [1usize << 20, 1usize << 21, 1usize << 22] {
+    for max_steps in [1usize << 22] {
         // expand more input size once runtime is acceptable
         let mut group = c.benchmark_group(format!("fibonacci_max_steps_{}", max_steps));
         group.sample_size(NUM_SAMPLES);
