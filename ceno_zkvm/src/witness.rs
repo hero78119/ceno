@@ -14,7 +14,10 @@ use multilinear_extensions::{
     util::create_uninit_vec,
 };
 use rayon::{
-    iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator},
+    iter::{
+        IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator,
+        IntoParallelRefMutIterator, ParallelIterator,
+    },
     slice::ParallelSliceMut,
 };
 use thread_local::ThreadLocal;
@@ -99,10 +102,10 @@ impl<T: Sized + Sync + Clone + Send + Copy> RowMajorMatrix<T> {
         (0..self.num_col)
             .map(|i| {
                 self.values
-                    .par_iter_mut()
+                    .par_iter()
                     .skip(i)
                     .step_by(self.num_col)
-                    .map(|v| unsafe { mem::replace(v, mem::MaybeUninit::uninit()).assume_init() })
+                    .map(|v| unsafe { v.assume_init() })
                     .collect::<Vec<T>>()
             })
             .collect()
