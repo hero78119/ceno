@@ -100,9 +100,10 @@ impl<T: Sized + Sync + Clone + Send + Copy> RowMajorMatrix<T> {
 
     pub fn de_interleaving(mut self) -> Vec<Vec<T>> {
         (0..self.num_col)
+            .into_par_iter()
             .map(|i| {
                 self.values
-                    .par_iter()
+                    .iter()
                     .skip(i)
                     .step_by(self.num_col)
                     .map(|v| unsafe { v.assume_init() })
