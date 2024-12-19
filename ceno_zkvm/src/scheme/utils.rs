@@ -1,4 +1,4 @@
-use std::{borrow::Cow, cell::SyncUnsafeCell, sync::Arc};
+use std::{borrow::Cow, cell::SyncUnsafeCell, iter, sync::Arc};
 
 use ark_std::iterable::Iterable;
 use ff_ext::ExtensionField;
@@ -33,10 +33,10 @@ use crate::{
 pub(crate) fn interleaving_mles_to_mles<'a, E: ExtensionField>(
     mles: &[ArcMultilinearExtension<E>],
     num_instances: usize,
-    num_limbs: usize,
+    num_chunks: usize,
     default: E,
 ) -> Vec<ArcMultilinearExtension<'a, E>> {
-    assert!(num_limbs.is_power_of_two());
+    assert!(num_chunks.is_power_of_two());
     assert!(!mles.is_empty());
     let next_power_of_2 = next_pow2_instance_padding(num_instances);
     assert!(
@@ -44,52 +44,105 @@ pub(crate) fn interleaving_mles_to_mles<'a, E: ExtensionField>(
             .all(|mle| mle.evaluations().len() <= next_power_of_2)
     );
     let log2_num_instances = ceil_log2(next_power_of_2);
-    let per_fanin_len = (mles[0].evaluations().len() / num_limbs).max(1); // minimal size 1
+    let per_fanin_len = (mles[0].evaluations().len() / num_chunks).max(1); // minimal size 1
     let log2_mle_size = ceil_log2(mles.len());
-    let log2_num_limbs = ceil_log2(num_limbs);
+    let log2_num_chunks = ceil_log2(num_chunks);
 
-    (0..num_limbs)
-        .into_par_iter()
+    let mle_vecs = mles
+        .iter()
+        .map(|mle| match mle.evaluations() {
+            FieldType::Ext(vec) => vec,
+            _ => unimplemented!(),
+        })
+        .collect::<Vec<&Vec<E>>>();
+    let n_threads = max_usable_threads();
+    // let evaluations = SyncUnsafeCell::new(
+    //     (0..(1 << (log2_mle_size + log2_num_instances)))
+    //         .into_par_iter()
+    //         .with_min_len(MIN_PAR_SIZE)
+    //         .map(|_| default)
+    //         .collect::<Vec<_>>(),
+    // );
+    // let per_instance_size = 1 << log2_mle_size;
+    // (0..n_threads).into_par_iter().for_each(|thread_id| unsafe {
+    //     let ptr = (*evaluations.get()).as_mut_ptr();
+    //     (0..num_chunks).for_each(|fanin_index| {
+    //         let start = per_fanin_len * fanin_index;
+    //         if start < num_instances {
+    //             let valid_instances_len = per_fanin_len.min(num_instances - start);
+    //             (start..(start + valid_instances_len))
+    //                 .skip(thread_id)
+    //                 .step_by(n_threads)
+    //                 .for_each(|instance| {
+    //                     let index = per_instance_size * instance;
+    //                     (0..mle_vecs.len()).for_each(|sub_index| {
+    //                         *ptr.add(index + sub_index) = mle_vecs[sub_index][instance];
+    //                     });
+    //                 });
+    //         }
+    //     });
+    // });
+    // let mut evaluations = evaluations.into_inner();
+    // let limb_size = per_fanin_len * per_instance_size;
+    // let evaluations: Vec<ArcMultilinearExtension<E>> = iter::from_fn(|| {
+    //     if evaluations.is_empty() {
+    //         None
+    //     } else {
+    //         Some(
+    //             evaluations
+    //                 .drain(0..std::cmp::min(limb_size, evaluations.len()))
+    //                 .collect(),
+    //         )
+    //     }
+    // })
+    // .map(|res: Vec<E>| res.into_mle().into())
+    // .collect();
+    // evaluations
+
+    let res2 = (0..num_chunks)
         .map(|fanin_index| {
-            let mut evaluations = vec![
-                default;
-                1 << (log2_mle_size
-                    + log2_num_instances.saturating_sub(log2_num_limbs))
-            ];
+            let evaluations = SyncUnsafeCell::new(
+                (0..(1 << (log2_mle_size + log2_num_instances.saturating_sub(log2_num_chunks))))
+                    .into_par_iter()
+                    .map(|_| default)
+                    .collect::<Vec<_>>(),
+            );
             let per_instance_size = 1 << log2_mle_size;
-            assert!(evaluations.len() >= per_instance_size);
             let start = per_fanin_len * fanin_index;
             if start < num_instances {
                 let valid_instances_len = per_fanin_len.min(num_instances - start);
                 mles.iter()
                     .enumerate()
                     .for_each(|(i, mle)| match mle.evaluations() {
-                        FieldType::Ext(mle) => mle
-                            .get(start..(start + valid_instances_len))
-                            .unwrap_or(&[])
-                            .par_iter()
-                            .zip(evaluations.par_chunks_mut(per_instance_size))
-                            .with_min_len(MIN_PAR_SIZE)
-                            .for_each(|(value, instance)| {
-                                assert_eq!(instance.len(), per_instance_size);
-                                instance[i] = *value;
-                            }),
-                        FieldType::Base(mle) => mle
-                            .get(start..(start + per_fanin_len))
-                            .unwrap_or(&[])
-                            .par_iter()
-                            .zip(evaluations.par_chunks_mut(per_instance_size))
-                            .with_min_len(MIN_PAR_SIZE)
-                            .for_each(|(value, instance)| {
-                                assert_eq!(instance.len(), per_instance_size);
-                                instance[i] = E::from(*value);
-                            }),
+                        FieldType::Ext(mle) => {
+                            (0..n_threads).into_par_iter().for_each(|thread_id| unsafe {
+                                assert!((*evaluations.get()).len() >= per_instance_size);
+                                let ptr = (*evaluations.get()).as_mut_ptr();
+                                (0..valid_instances_len)
+                                    .skip(thread_id)
+                                    .step_by(n_threads)
+                                    .for_each(|instance| {
+                                        let index = per_instance_size * instance;
+                                        *ptr.add(index + i) = mle[start + instance];
+                                    });
+                            });
+                            // mle.get(start..(start + valid_instances_len))
+                            //     .unwrap_or(&[])
+                            //     .par_iter()
+                            //     .zip(evaluations.par_chunks_mut(per_instance_size))
+                            //     .with_min_len(MIN_PAR_SIZE)
+                            //     .for_each(|(value, instance)| {
+                            //         assert_eq!(instance.len(), per_instance_size);
+                            //         instance[i] = *value;
+                            //     });
+                        }
                         _ => unreachable!(),
                     });
             }
-            evaluations.into_mle().into()
+            evaluations.into_inner().into_mle().into()
         })
-        .collect::<Vec<ArcMultilinearExtension<E>>>()
+        .collect::<Vec<ArcMultilinearExtension<E>>>();
+    res2
 }
 
 macro_rules! tower_mle_4 {
