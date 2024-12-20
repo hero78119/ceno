@@ -83,6 +83,7 @@ fn fibonacci_prove(c: &mut Criterion) {
             |b| {
                 b.iter_custom(|iters| {
                     let mut time = Duration::new(0, 0);
+                    println!("iters {iters}");
                     for _ in 0..iters {
                         let (_, run_e2e_proof) = run_e2e_with_checkpoint::<E, Pcs>(
                             program.clone(),
