@@ -14,6 +14,7 @@ use crate::{
         ext_to_usize,
         hash::{Digest, write_digest_to_transcript},
         log2_strict,
+        matrix::RowMajorMatrix,
         merkle_tree::MerkleTree,
         multiply_poly,
         plonky2_util::reverse_index_bits_in_place_field_type,
@@ -306,7 +307,7 @@ where
 
     fn commit(
         pp: &Self::ProverParam,
-        poly: &DenseMultilinearExtension<E>,
+        poly: &RowMajorMatrix<E::BaseField>,
     ) -> Result<Self::CommitmentWithWitness, Error> {
         let timer = start_timer!(|| "Basefold::commit");
 
@@ -358,7 +359,7 @@ where
 
     fn batch_commit(
         pp: &Self::ProverParam,
-        polys: &[DenseMultilinearExtension<E>],
+        polys: &RowMajorMatrix<E::BaseField>,
     ) -> Result<Self::CommitmentWithWitness, Error> {
         // assumptions
         // 1. there must be at least one polynomial
@@ -367,7 +368,7 @@ where
         //     and opening mixed-type polys)
         // 3. all polynomials must have the same number of variables
 
-        if polys.is_empty() {
+        if polys.num_cols() == 0 {
             return Err(Error::InvalidPcsParam(
                 "cannot batch commit to zero polynomials".to_string(),
             ));

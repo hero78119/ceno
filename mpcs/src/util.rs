@@ -1,6 +1,7 @@
 pub mod arithmetic;
 pub mod expression;
 pub mod hash;
+pub mod matrix;
 pub mod parallel;
 pub mod plonky2_util;
 use ff::{Field, PrimeField};
@@ -314,6 +315,11 @@ pub fn ext_try_into_base<E: ExtensionField>(x: &E) -> Result<E::BaseField, Error
     } else {
         Ok(bases[0])
     }
+}
+
+/// get next power of 2 instance with minimal size 2
+pub fn next_pow2_instance_padding(num_instance: usize) -> usize {
+    num_instance.next_power_of_two().max(2)
 }
 
 #[cfg(any(test, feature = "benchmark"))]

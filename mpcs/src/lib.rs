@@ -5,7 +5,7 @@ use multilinear_extensions::mle::DenseMultilinearExtension;
 use serde::{Serialize, de::DeserializeOwned};
 use std::fmt::Debug;
 use transcript::{BasicTranscript, Transcript};
-use util::hash::Digest;
+use util::{hash::Digest, matrix::RowMajorMatrix};
 
 pub mod sum_check;
 pub mod util;
@@ -34,14 +34,14 @@ pub fn pcs_trim<E: ExtensionField, Pcs: PolynomialCommitmentScheme<E>>(
 
 pub fn pcs_commit<E: ExtensionField, Pcs: PolynomialCommitmentScheme<E>>(
     pp: &Pcs::ProverParam,
-    poly: &DenseMultilinearExtension<E>,
+    poly: &RowMajorMatrix<E::BaseField>,
 ) -> Result<Pcs::CommitmentWithWitness, Error> {
     Pcs::commit(pp, poly)
 }
 
 pub fn pcs_commit_and_write<E: ExtensionField, Pcs: PolynomialCommitmentScheme<E>>(
     pp: &Pcs::ProverParam,
-    poly: &DenseMultilinearExtension<E>,
+    poly: &RowMajorMatrix<E::BaseField>,
     transcript: &mut impl Transcript<E>,
 ) -> Result<Pcs::CommitmentWithWitness, Error> {
     Pcs::commit_and_write(pp, poly, transcript)
@@ -49,14 +49,14 @@ pub fn pcs_commit_and_write<E: ExtensionField, Pcs: PolynomialCommitmentScheme<E
 
 pub fn pcs_batch_commit<E: ExtensionField, Pcs: PolynomialCommitmentScheme<E>>(
     pp: &Pcs::ProverParam,
-    polys: &[DenseMultilinearExtension<E>],
+    polys: &RowMajorMatrix<E::BaseField>,
 ) -> Result<Pcs::CommitmentWithWitness, Error> {
     Pcs::batch_commit(pp, polys)
 }
 
 pub fn pcs_batch_commit_and_write<E: ExtensionField, Pcs: PolynomialCommitmentScheme<E>>(
     pp: &Pcs::ProverParam,
-    polys: &[DenseMultilinearExtension<E>],
+    polys: &RowMajorMatrix<E::BaseField>,
     transcript: &mut impl Transcript<E>,
 ) -> Result<Pcs::CommitmentWithWitness, Error> {
     Pcs::batch_commit_and_write(pp, polys, transcript)
@@ -127,12 +127,12 @@ pub trait PolynomialCommitmentScheme<E: ExtensionField>: Clone + Debug {
 
     fn commit(
         pp: &Self::ProverParam,
-        poly: &DenseMultilinearExtension<E>,
+        poly: &RowMajorMatrix<E::BaseField>,
     ) -> Result<Self::CommitmentWithWitness, Error>;
 
     fn commit_and_write(
         pp: &Self::ProverParam,
-        poly: &DenseMultilinearExtension<E>,
+        poly: &RowMajorMatrix<E::BaseField>,
         transcript: &mut impl Transcript<E>,
     ) -> Result<Self::CommitmentWithWitness, Error> {
         let comm = Self::commit(pp, poly)?;
@@ -149,12 +149,12 @@ pub trait PolynomialCommitmentScheme<E: ExtensionField>: Clone + Debug {
 
     fn batch_commit(
         pp: &Self::ProverParam,
-        polys: &[DenseMultilinearExtension<E>],
+        polys: &RowMajorMatrix<E::BaseField>,
     ) -> Result<Self::CommitmentWithWitness, Error>;
 
     fn batch_commit_and_write(
         pp: &Self::ProverParam,
-        polys: &[DenseMultilinearExtension<E>],
+        polys: &RowMajorMatrix<E::BaseField>,
         transcript: &mut impl Transcript<E>,
     ) -> Result<Self::CommitmentWithWitness, Error> {
         let comm = Self::batch_commit(pp, polys)?;
@@ -369,7 +369,7 @@ fn err_too_many_variates(function: &str, upto: usize, got: usize) -> Error {
 pub mod test_util {
     #[cfg(test)]
     use crate::Evaluation;
-    use crate::PolynomialCommitmentScheme;
+    use crate::{PolynomialCommitmentScheme, util::matrix::RowMajorMatrix};
     use ff_ext::ExtensionField;
     use itertools::Itertools;
     #[cfg(test)]
@@ -435,9 +435,10 @@ pub mod test_util {
 
     pub fn commit_polys_individually<E: ExtensionField, Pcs: PolynomialCommitmentScheme<E>>(
         pp: &Pcs::ProverParam,
-        polys: &[DenseMultilinearExtension<E>],
+        poly: &RowMajorMatrix<E::BaseField>,
         transcript: &mut impl Transcript<E>,
     ) -> Vec<Pcs::CommitmentWithWitness> {
+        assert!(poly.num_cols() == 1);
         polys
             .iter()
             .map(|poly| Pcs::commit_and_write(pp, poly, transcript).unwrap())

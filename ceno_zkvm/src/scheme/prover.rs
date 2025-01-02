@@ -33,7 +33,7 @@ use crate::{
     structs::{
         Point, ProvingKey, TowerProofs, TowerProver, TowerProverSpec, ZKVMProvingKey, ZKVMWitnesses,
     },
-    utils::{get_challenge_pows, next_pow2_instance_padding, optimal_sumcheck_threads},
+    utils::{get_challenge_pows, optimal_sumcheck_threads},
     virtual_polys::VirtualPolynomials,
 };
 

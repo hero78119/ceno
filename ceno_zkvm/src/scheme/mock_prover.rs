@@ -13,7 +13,7 @@ use crate::{
         AndTable, LtuTable, OpsTable, OrTable, PowTable, ProgramTableCircuit, RangeTable,
         TableCircuit, U5Table, U8Table, U14Table, U16Table, XorTable,
     },
-    witness::{LkMultiplicity, LkMultiplicityRaw, RowMajorMatrix},
+    witness::{LkMultiplicity, LkMultiplicityRaw},
 };
 use ark_std::test_rng;
 use base64::{Engine, engine::general_purpose::STANDARD_NO_PAD};
@@ -1240,12 +1240,12 @@ mod tests {
         error::ZKVMError,
         expression::{ToExpr, WitIn},
         gadgets::{AssertLtConfig, IsLtConfig},
-        instructions::InstancePaddingStrategy,
         set_val,
-        witness::{LkMultiplicity, RowMajorMatrix},
+        witness::LkMultiplicity,
     };
     use ff::Field;
     use goldilocks::{Goldilocks, GoldilocksExt2};
+    use mpcs::util::matrix::RowMajorMatrix;
     use multilinear_extensions::mle::IntoMLE;
 
     #[derive(Debug)]
