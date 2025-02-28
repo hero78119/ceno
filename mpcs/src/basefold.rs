@@ -392,10 +392,20 @@ where
 
         let encode_timer = start_timer!(|| "Basefold::batch commit::encoding and interpolations");
         // convert each polynomial to a code word
-        let evals_codewords = polys
-            .par_iter()
-            .map(|poly| Self::get_poly_bh_evals_and_codeword(pp, poly))
-            .collect::<Vec<PolyEvalsCodeword<E>>>();
+        // let evals_codewords = polys
+        //     .par_iter()
+        //     .map(|poly| Self::get_poly_bh_evals_and_codeword(pp, poly))
+        //     .collect::<Vec<PolyEvalsCodeword<E>>>();
+        let fft = Radix2DitParallel::default();
+        let mut mle = rmm.bit_reversed_zero_pad(1 << expansion_factor);
+        let evals_codewords = fft(mle);
+
+        let mmcs = MerkleTreeMmcs::new(
+            GenericHasher::new(Poseidon2Hash),
+            CompressionFunctionFromHasher::new(Poseidon2Hash),
+        );
+        let commitment_with_data = mmcs.commit_matrix(evals_codewords);
+
         end_timer!(encode_timer);
 
         // build merkle tree from leaves
