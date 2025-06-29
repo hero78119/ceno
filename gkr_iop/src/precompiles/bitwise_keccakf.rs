@@ -3,7 +3,7 @@ use std::{array::from_fn, marker::PhantomData, mem::transmute};
 use ff_ext::ExtensionField;
 use itertools::{Itertools, iproduct, izip};
 use multilinear_extensions::{
-    Expression, ToExpr, WitIn,
+    ChallengeId, Expression, ToExpr, WitIn,
     mle::{MultilinearExtension, Point, PointAndEval},
     util::ceil_log2,
 };
@@ -351,8 +351,10 @@ fn output32_layer<E: ExtensionField>(
     layer: &Output32Layer<WitIn>,
     out_evals: &[usize],
     in_evals: &[usize],
+    alpha: Expression<E>,
+    beta: Expression<E>,
 ) -> Layer<E> {
-    let mut system = LayerConstraintSystem::new(STATE_SIZE, 0, 0, None);
+    let mut system = LayerConstraintSystem::new(STATE_SIZE, 0, 0, None, alpha, beta);
 
     let keccak_output = &layer.output;
     let mut keccak_output32_iter = out_evals.iter().map(|x| EvalExpression::Single(*x));
@@ -385,8 +387,11 @@ fn iota_layer<E: ExtensionField>(
     iota_out_evals: &[usize],
     iota_in_evals: &[usize],
     round_id: usize,
+    alpha: Expression<E>,
+    beta: Expression<E>,
 ) -> Layer<E> {
-    let mut system = LayerConstraintSystem::new(STATE_SIZE, 0, 0, Some(layer.eq.expr()));
+    let mut system =
+        LayerConstraintSystem::new(STATE_SIZE, 0, 0, Some(layer.eq.expr()), alpha, beta);
 
     let bits = layer.chi_output.iter().map(|e| e.expr()).collect_vec();
     let round_value = RC[round_id];
@@ -425,8 +430,10 @@ fn rho_pi_and_chi_layer<E: ExtensionField>(
     out_evals: &[usize],
     in_evals: &[usize],
     round_id: usize,
+    alpha: Expression<E>,
+    beta: Expression<E>,
 ) -> Layer<E> {
-    let mut system = LayerConstraintSystem::new(STATE_SIZE, 0, 0, None);
+    let mut system = LayerConstraintSystem::new(STATE_SIZE, 0, 0, None, alpha, beta);
     // Apply the effects of the rho + pi permutation directly o the argument of chi
     // No need for a separate layer
     let perm = rho_and_pi_permutation();
@@ -463,8 +470,10 @@ fn theta_third_layer<E: ExtensionField>(
     out_evals: &[usize],
     in_evals: &[usize],
     round_id: usize,
+    alpha: Expression<E>,
+    beta: Expression<E>,
 ) -> Layer<E> {
-    let mut system = LayerConstraintSystem::new(D_SIZE + STATE_SIZE, 0, 0, None);
+    let mut system = LayerConstraintSystem::new(D_SIZE + STATE_SIZE, 0, 0, None, alpha, beta);
     // Compute post-theta state using original state and D[][] values
     let mut out_eval_iter = out_evals.iter().map(|o| EvalExpression::Single(*o));
     (0..STATE_SIZE).for_each(|i| {
@@ -489,8 +498,10 @@ fn theta_second_layer<E: ExtensionField>(
     out_evals: &[usize],
     in_evals: &[usize],
     round_id: usize,
+    alpha: Expression<E>,
+    beta: Expression<E>,
 ) -> Layer<E> {
-    let mut system = LayerConstraintSystem::new(D_SIZE + STATE_SIZE, 0, 0, None);
+    let mut system = LayerConstraintSystem::new(D_SIZE + STATE_SIZE, 0, 0, None, alpha, beta);
     // Compute D[][] from C[][] values
     let c = layer.c.iter().map(|c| c.expr()).collect_vec();
     let mut out_eval_iter = out_evals.iter().map(|o| EvalExpression::Single(*o));
@@ -516,8 +527,10 @@ fn theta_first_layer<E: ExtensionField>(
     state_copy_out_evals: &[usize],
     in_evals: &[usize],
     round_id: usize,
+    alpha: Expression<E>,
+    beta: Expression<E>,
 ) -> Layer<E> {
-    let mut system = LayerConstraintSystem::new(STATE_SIZE, 0, 0, None);
+    let mut system = LayerConstraintSystem::new(STATE_SIZE, 0, 0, None, alpha, beta);
     let state_wits = layer.round_input.iter().map(|s| s.expr()).collect_vec();
 
     // Compute C[][] from state
@@ -557,8 +570,10 @@ fn keccak_first_layer<E: ExtensionField>(
     state_copy_out_evals: &[usize],
     input32_out_evals: &[usize],
     in_evals: &[usize],
+    alpha: Expression<E>,
+    beta: Expression<E>,
 ) -> Layer<E> {
-    let mut system = LayerConstraintSystem::new(STATE_SIZE, 0, 0, None);
+    let mut system = LayerConstraintSystem::new(STATE_SIZE, 0, 0, None, alpha, beta);
     let state_wits = layer.round_input.iter().map(|s| s.expr()).collect_vec();
 
     // Compute C[][] from state
@@ -638,19 +653,27 @@ impl<E: ExtensionField> ProtocolBuilder<E> for KeccakLayout<E> {
             }
             .to_vec(),
         };
+        let [alpha, beta] = [
+            Expression::Challenge(0 as ChallengeId, 1, E::ONE, E::ZERO), // global challenge alpha
+            Expression::Challenge(1 as ChallengeId, 1, E::ONE, E::ZERO), // global challenge beta
+        ];
         chip.add_layer(output32_layer(
             &self.layers.output32,
             &self.final_out_evals.output32,
             &self.layer_in_evals.output32,
+            alpha.clone(),
+            beta.clone(),
         ));
 
         macro_rules! add_common_layers {
-            ($round_layers:expr, $round_output:expr, $round_in_evals:expr, $round_id:expr) => {
+            ($round_layers:expr, $round_output:expr, $round_in_evals:expr, $round_id:expr, $alpha:expr, $beta:expr) => {
                 chip.add_layer(iota_layer(
                     &$round_layers.iota,
                     &$round_output[..Z],
                     &$round_in_evals.iota,
                     $round_id,
+                    $alpha,
+                    $beta,
                 ));
 
                 let rho_pi_and_chi_out_evals =
@@ -660,18 +683,24 @@ impl<E: ExtensionField> ProtocolBuilder<E> for KeccakLayout<E> {
                     &rho_pi_and_chi_out_evals,
                     &$round_in_evals.rho_pi_and_chi,
                     $round_id,
+                    $alpha,
+                    $beta,
                 ));
                 chip.add_layer(theta_third_layer(
                     &$round_layers.theta_third,
                     &$round_in_evals.rho_pi_and_chi,
                     &$round_in_evals.theta_third,
                     $round_id,
+                    $alpha,
+                    $beta,
                 ));
                 chip.add_layer(theta_second_layer(
                     &$round_layers.theta_second,
                     &$round_in_evals.theta_third,
                     &$round_in_evals.theta_second,
                     $round_id,
+                    $alpha,
+                    $beta,
                 ));
             };
         }
@@ -686,13 +715,22 @@ impl<E: ExtensionField> ProtocolBuilder<E> for KeccakLayout<E> {
         .fold(
             &self.layer_in_evals.output32,
             |round_output, (round_id, round_layers, round_in_evals)| {
-                add_common_layers!(round_layers, round_output, round_in_evals, round_id);
+                add_common_layers!(
+                    round_layers,
+                    round_output,
+                    round_in_evals,
+                    round_id,
+                    alpha.clone(),
+                    beta.clone()
+                );
                 chip.add_layer(theta_first_layer(
                     &round_layers.theta_first,
                     &round_in_evals.theta_second,
                     &round_in_evals.theta_third[D_SIZE..],
                     &round_in_evals.theta_first,
                     round_id,
+                    alpha.clone(),
+                    beta.clone(),
                 ));
                 &round_in_evals.theta_first
             },
@@ -702,7 +740,14 @@ impl<E: ExtensionField> ProtocolBuilder<E> for KeccakLayout<E> {
         let (round_layers, round_in_evals) =
             (&self.layers.first_round, &self.layer_in_evals.first_round);
 
-        add_common_layers!(round_layers, round_output, round_in_evals, 0);
+        add_common_layers!(
+            round_layers,
+            round_output,
+            round_in_evals,
+            0,
+            alpha.clone(),
+            beta.clone()
+        );
 
         chip.add_layer(keccak_first_layer(
             &round_layers.theta_first,
@@ -710,6 +755,8 @@ impl<E: ExtensionField> ProtocolBuilder<E> for KeccakLayout<E> {
             &round_in_evals.theta_third[D_SIZE..],
             &self.final_out_evals.input32,
             &round_in_evals.theta_first,
+            alpha.clone(),
+            beta.clone(),
         ));
         chip
     }
