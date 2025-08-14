@@ -82,6 +82,7 @@ use crate::{
 };
 use multilinear_extensions::{Expression, ToExpr, WitIn};
 use std::marker::PhantomData;
+use crate::instructions::riscv::constants::LIMB_BITS;
 
 pub struct DivRemConfig<E: ExtensionField> {
     dividend: UInt<E>, // rs1_read
@@ -247,7 +248,7 @@ impl<E: ExtensionField, I: RIVInstruction> Instruction<E> for ArithInstruction<E
                     || "oriented_remainder_nonnegative",
                     (-1i32).into(),
                     remainder_pos_orientation.clone(),
-                    UINT_LIMBS,
+                    UINT_LIMBS * LIMB_BITS,
                 )?;
 
                 (
@@ -290,7 +291,7 @@ impl<E: ExtensionField, I: RIVInstruction> Instruction<E> for ArithInstruction<E
             || "is_remainder_lt_divisor",
             rem_e,
             div_e,
-            UINT_LIMBS,
+            UINT_LIMBS * LIMB_BITS,
         )?;
 
         // When divisor is nonzero, (nonnegative) remainder must be less than

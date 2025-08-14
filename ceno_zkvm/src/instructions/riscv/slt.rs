@@ -12,7 +12,7 @@ use crate::{
     circuit_builder::CircuitBuilder,
     error::ZKVMError,
     gadgets::{IsLtConfig, SignedLtConfig},
-    instructions::Instruction,
+    instructions::{Instruction, riscv::constants::LIMB_BITS},
     structs::ProgramParams,
     uint::Value,
     witness::LkMultiplicity,
@@ -77,7 +77,7 @@ impl<E: ExtensionField, I: RIVInstruction> Instruction<E> for SetLessThanInstruc
                     || "rs1 < rs2",
                     rs1_read.value(),
                     rs2_read.value(),
-                    UINT_LIMBS,
+                    UINT_LIMBS * LIMB_BITS,
                 )?;
                 let rd_written = UInt::from_exprs_unchecked(vec![is_lt.expr()]);
                 (SetLessThanDependencies::Sltu { is_lt }, rd_written)

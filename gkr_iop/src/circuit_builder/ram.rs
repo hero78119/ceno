@@ -5,7 +5,10 @@ use crate::circuit_builder::DebugIndex;
 use itertools::izip;
 use multilinear_extensions::{Expression, ToExpr, power_sequence};
 
-use crate::{circuit_builder::CircuitBuilder, gadgets::AssertLtConfig};
+use crate::{circuit_builder::CircuitBuilder, gadgets::AssertLtConfig, tables::LookupTable::U16};
+
+// 1 << BITS need to be smaller than prime field
+pub const MAX_TS_BITS: usize = 30;
 
 impl<E: ExtensionField> CircuitBuilder<'_, E> {
     pub fn ram_type_read<const LIMBS: usize, NR: Into<String>, N: FnOnce() -> NR>(
@@ -43,7 +46,7 @@ impl<E: ExtensionField> CircuitBuilder<'_, E> {
                 || "prev_ts < ts",
                 prev_ts,
                 ts.clone(),
-                LIMBS,
+                MAX_TS_BITS,
             )?;
 
             let next_ts = ts + 1;
@@ -89,7 +92,7 @@ impl<E: ExtensionField> CircuitBuilder<'_, E> {
                 || "prev_ts < ts",
                 prev_ts,
                 ts.clone(),
-                LIMBS,
+                MAX_TS_BITS,
             )?;
 
             let next_ts = ts + 1;

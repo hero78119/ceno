@@ -9,7 +9,7 @@ use crate::{
     instructions::riscv::constants::{UINT_LIMBS, UInt},
     witness::LkMultiplicity,
 };
-
+use crate::instructions::riscv::constants::LIMB_BITS;
 use super::AssertLtConfig;
 
 /// divide gadget
@@ -40,7 +40,7 @@ impl<E: ExtensionField> DivConfig<E> {
                 || "remainder < divisor",
                 remainder.value(),
                 divisor.value(),
-                UINT_LIMBS,
+                UINT_LIMBS * LIMB_BITS,
             )?;
 
             Ok(Self {

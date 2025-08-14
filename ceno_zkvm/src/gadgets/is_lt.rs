@@ -13,7 +13,7 @@ use crate::{
 };
 use ff_ext::FieldInto;
 use multilinear_extensions::{Expression, ToExpr, WitIn};
-
+use crate::instructions::riscv::constants::LIMB_BITS;
 use super::SignedExtendConfig;
 
 #[derive(Debug)]
@@ -124,7 +124,7 @@ impl<E: ExtensionField> InnerSignedLtConfig<E> {
             lhs_value,
             rhs_value,
             is_lt_expr,
-            UINT_LIMBS,
+            UINT_LIMBS * LIMB_BITS,
         )?;
 
         Ok(Self {
