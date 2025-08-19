@@ -9,7 +9,7 @@ use crate::{
     },
     tables::{
         ProgramTableCircuit, RMMCollections, RangeTable, TableCircuit, U5Table, U8Table, U14Table,
-        U16Table,
+        U16Table, U17Table,
     },
     witness::LkMultiplicity,
 };
@@ -400,6 +400,7 @@ fn load_tables<E: ExtensionField>(
     load_range_table::<U8Table, _>(&mut table_vec, cs, challenge);
     load_range_table::<U14Table, _>(&mut table_vec, cs, challenge);
     load_range_table::<U16Table, _>(&mut table_vec, cs, challenge);
+    load_range_table::<U17Table, _>(&mut table_vec, cs, challenge);
     load_op_table::<AndTable, _>(&mut table_vec, cs, challenge);
     load_op_table::<OrTable, _>(&mut table_vec, cs, challenge);
     load_op_table::<XorTable, _>(&mut table_vec, cs, challenge);
