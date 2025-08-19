@@ -297,7 +297,7 @@ impl<E: ExtensionField, K: LkMultiplicityKey> MockProverError<E, K> {
                         "assignments"
                     };
                     let element = match rom_type {
-                        ROMType::U5 | ROMType::U8 | ROMType::U14 | ROMType::U16 => {
+                        ROMType::U5 | ROMType::U8 | ROMType::U14 | ROMType::U16 | ROMType::U17 => {
                             format!("Element: {key:?}")
                         }
                         ROMType::And => {
@@ -725,6 +725,7 @@ impl<'a, E: ExtensionField + Hash> MockProver<E> {
                         ROMType::U8 => lkm_from_cs.assert_ux::<8>(args_eval[0][inst_id]),
                         ROMType::U14 => lkm_from_cs.assert_ux::<14>(args_eval[0][inst_id]),
                         ROMType::U16 => lkm_from_cs.assert_ux::<16>(args_eval[0][inst_id]),
+                        ROMType::U17 => lkm_from_cs.assert_ux::<17>(args_eval[0][inst_id]),
                         ROMType::And => lkm_from_cs
                             .lookup_and_byte(args_eval[0][inst_id], args_eval[1][inst_id]),
                         ROMType::Or => {
