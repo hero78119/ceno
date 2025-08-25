@@ -57,7 +57,7 @@ impl OpTableConfig {
         let mut fixed =
             RowMajorMatrix::<F>::new(content.len(), num_fixed, InstancePaddingStrategy::Default);
 
-        fixed.par_rows_mut().zip(content).for_each(|(row, abc)| {
+        fixed.rows_mut().zip(content).for_each(|(row, abc)| {
             for (col, val) in self.abc.iter().zip(abc.iter()) {
                 set_fixed_val!(row, *col, F::from_v(*val));
             }

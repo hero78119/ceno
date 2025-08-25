@@ -130,11 +130,11 @@ pub struct KeccakFixedCols<T> {
 pub struct KeccakWitCols<T> {
     pub input8: [T; 200],
     pub c_aux: [T; 200],
-    pub c_temp: [T; 30],
+    pub c_temp: [T; 40],
     pub c_rot: [T; 40],
     pub d: [T; 40],
     pub theta_output: [T; 200],
-    pub rotation_witness: [T; 146],
+    pub rotation_witness: [T; 200],
     pub rhopi_output: [T; 200],
     pub nonlinear: [T; 200],
     pub chi_output: [T; 8],
@@ -312,7 +312,7 @@ impl<E: ExtensionField> ProtocolBuilder<E> for KeccakLayout<E> {
         // documentation of `constrain_left_rotation64`. Here c_temp is the split
         // witness for a 1-rotation.
 
-        let c_temp: ArrayView<WitIn, Ix2> = ArrayView::from_shape((5, 6), c_temp).unwrap();
+        let c_temp: ArrayView<WitIn, Ix2> = ArrayView::from_shape((5, 8), c_temp).unwrap();
         let c_rot: ArrayView<WitIn, Ix2> = ArrayView::from_shape((5, 8), c_rot).unwrap();
 
         let (sizes, _) = rotation_split(1);
@@ -377,7 +377,6 @@ impl<E: ExtensionField> ProtocolBuilder<E> for KeccakLayout<E> {
 
         // iterator over split witnesses
         let mut rotation_witness = rotation_witness.iter();
-
         for i in 0..5 {
             #[allow(clippy::needless_range_loop)]
             for j in 0..5 {
@@ -785,12 +784,12 @@ where
                         c8[x] = conv64to8(c64[x]);
                     }
 
-                    let mut c_temp = [[0u64; 6]; 5];
+                    let mut c_temp = [[0u64; 8]; 5];
                     for i in 0..5 {
                         let rep = MaskRepresentation::new(vec![(64, c64[i]).into()])
-                            .convert(vec![16, 15, 1, 16, 15, 1])
+                            .convert(vec![15, 1, 15, 1, 15, 1, 15, 1])
                             .values();
-                        for (j, size) in [16, 15, 1, 16, 15, 1].iter().enumerate() {
+                        for (j, size) in [1, 15, 1, 15, 1, 15, 1, 15].iter().enumerate() {
                             lk_multiplicity.assert_ux_in_u16(*size, rep[j]);
                         }
                         c_temp[i] = rep.try_into().unwrap();

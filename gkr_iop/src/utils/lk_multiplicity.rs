@@ -204,6 +204,9 @@ impl LkMultiplicity {
 
     #[inline(always)]
     pub fn assert_ux_v2(&mut self, v: u64, max_bits: usize) {
+        if max_bits == 1 {
+            return; // max bit 1 do not need lookup
+        }
         self.increment(
             match max_bits {
                 16 => LookupTable::U16,
