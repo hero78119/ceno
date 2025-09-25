@@ -684,6 +684,12 @@ pub fn run_e2e_with_checkpoint<
     let init_full_mem = ctx.setup_init_mem(hints, public_io);
     tracing::debug!("setup_init_mem done in {:?}", start.elapsed());
 
+    #[cfg(feature = "gpu")]
+    {
+        use gkr_iop::gpu::get_cuda_hal;
+        let cuda_hal = get_cuda_hal().unwrap();
+    }
+
     // Generate witness
     let is_mock_proving = std::env::var("MOCK_PROVING").is_ok();
     if let Checkpoint::PrepE2EProving = checkpoint {
@@ -749,10 +755,17 @@ pub fn run_e2e_with_checkpoint<
     let transcript = Transcript::new(b"riscv");
     let start = std::time::Instant::now();
     let zkvm_proof = prover
-        .create_proof(zkvm_witness, pi, transcript)
+        .create_proof(zkvm_witness.clone(), pi.clone(), transcript)
         .expect("create_proof failed");
     tracing::debug!("proof created in {:?}", start.elapsed());
     tracing::info!("e2e proof stat: {}", zkvm_proof);
+
+    let transcript = Transcript::new(b"riscv");
+    let zkvm_proof = prover
+        .create_proof(zkvm_witness, pi, transcript)
+        .expect("create_proof failed");
+    tracing::debug!("proof2 created in {:?}", start.elapsed());
+    tracing::info!("e2e2 proof stat: {}", zkvm_proof);
 
     let verifier = ZKVMVerifier::new(vk.clone());
 

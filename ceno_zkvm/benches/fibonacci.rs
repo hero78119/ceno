@@ -10,10 +10,12 @@ use ceno_zkvm::{
 mod alloc;
 use criterion::*;
 
-use ff_ext::BabyBearExt4;
+use ff_ext::{BabyBearExt4, GoldilocksExt2};
 use gkr_iop::cpu::default_backend_config;
 
 use ceno_zkvm::scheme::verifier::ZKVMVerifier;
+#[cfg(feature = "gpu")]
+use gkr_iop::gpu::get_cuda_hal;
 use mpcs::BasefoldDefault;
 use transcript::BasicTranscript;
 
@@ -28,7 +30,7 @@ criterion_main!(fibonacci_prove_group);
 const NUM_SAMPLES: usize = 10;
 
 type Pcs = BasefoldDefault<E>;
-type E = BabyBearExt4;
+type E = GoldilocksExt2;
 
 // Relevant init data for fibonacci run
 fn setup() -> (Program, Platform) {
@@ -45,33 +47,33 @@ fn fibonacci_prove(c: &mut Criterion) {
     let (max_num_variables, security_level) = default_backend_config();
     let backend = create_backend::<E, Pcs>(max_num_variables, security_level);
 
-    for max_steps in [1usize << 20, 1usize << 21, 1usize << 22] {
+    for max_steps in [1usize << 22, 1usize << 23, 1usize << 24] {
         // retrive 1 << 20th fibonacci element >> max_steps
         let mut hints = CenoStdin::default();
         let _ = hints.write(&20);
         // estimate proof size data first
-        let result = run_e2e_with_checkpoint::<E, Pcs, _, _>(
-            create_prover(backend.clone()),
-            program.clone(),
-            platform.clone(),
-            &Vec::from(&hints),
-            &[],
-            max_steps,
-            Checkpoint::Complete,
-        );
-        let proof = result.proof.expect("PrepSanityCheck do not provide proof");
-        let vk = result.vk.expect("PrepSanityCheck do not provide verifier");
-
-        println!("e2e proof {}", proof);
-        let transcript = BasicTranscript::new(b"riscv");
-        let verifier = ZKVMVerifier::<E, Pcs>::new(vk);
-        assert!(
-            verifier
-                .verify_proof_halt(proof, transcript, false)
-                .expect("verify proof return with error"),
-        );
-        println!();
-        println!("max_steps = {}", max_steps);
+        // let result = run_e2e_with_checkpoint::<E, Pcs, _, _>(
+        //     create_prover(backend.clone()),
+        //     program.clone(),
+        //     platform.clone(),
+        //     &Vec::from(&hints),
+        //     &[],
+        //     max_steps,
+        //     Checkpoint::Complete,
+        // );
+        // let proof = result.proof.expect("PrepSanityCheck do not provide proof");
+        // let vk = result.vk.expect("PrepSanityCheck do not provide verifier");
+        //
+        // println!("e2e proof {}", proof);
+        // let transcript = BasicTranscript::new(b"riscv");
+        // let verifier = ZKVMVerifier::<E, Pcs>::new(vk);
+        // assert!(
+        //     verifier
+        //         .verify_proof_halt(proof, transcript, false)
+        //         .expect("verify proof return with error"),
+        // );
+        // println!();
+        // println!("max_steps = {}", max_steps);
 
         // expand more input size once runtime is acceptable
         let mut group = c.benchmark_group(format!("fibonacci_max_steps_{}", max_steps));
@@ -86,6 +88,8 @@ fn fibonacci_prove(c: &mut Criterion) {
             |b| {
                 b.iter_custom(|iters| {
                     let mut time = Duration::new(0, 0);
+                    // #[cfg(feature = "gpu")]
+                    //  let _unused = get_cuda_hal().unwrap();
                     for _ in 0..iters {
                         let result = run_e2e_with_checkpoint::<E, Pcs, _, _>(
                             create_prover(backend.clone()),

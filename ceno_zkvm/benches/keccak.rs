@@ -10,7 +10,7 @@ use ceno_zkvm::{
 mod alloc;
 use ceno_zkvm::scheme::verifier::ZKVMVerifier;
 use criterion::*;
-use ff_ext::BabyBearExt4;
+use ff_ext::{BabyBearExt4, GoldilocksExt2};
 use gkr_iop::cpu::default_backend_config;
 use mpcs::BasefoldDefault;
 use transcript::BasicTranscript;
@@ -26,7 +26,7 @@ criterion_main!(keccak_prove_group);
 const NUM_SAMPLES: usize = 10;
 
 type Pcs = BasefoldDefault<E>;
-type E = BabyBearExt4;
+type E = GoldilocksExt2;
 
 // Relevant init data for keccak run
 fn setup() -> (Program, Platform) {

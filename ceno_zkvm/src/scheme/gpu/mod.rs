@@ -143,10 +143,11 @@ impl<E: ExtensionField, PCS: PolynomialCommitmentScheme<E>> TraceCommitter<GpuBa
             let traces_gl64: Vec<witness::RowMajorMatrix<p3::goldilocks::Goldilocks>> =
                 unsafe { std::mem::transmute(vec_traces) };
 
-            let span = entered_span!("[gpu] batch_commit", profiling_2 = true);
-            let pcs_data = cuda_hal.basefold.batch_commit(traces_gl64).unwrap();
-            exit_span!(span);
-
+            let pcs_data = cuda_hal
+                .basefold
+                .batch_commit(&cuda_hal, traces_gl64)
+                .unwrap();
+            
             let span = entered_span!("[gpu] get_pure_commitment", profiling_2 = true);
             let basefold_commit = cuda_hal.basefold.get_pure_commitment(&pcs_data);
             exit_span!(span);

@@ -30,8 +30,13 @@ pub mod gpu_prover {
     pub type GL64Base = p3::goldilocks::Goldilocks;
     pub type GL64Ext = ff_ext::GoldilocksExt2;
 
-    pub static CUDA_DEVICE: Lazy<Result<Arc<CudaDevice>, DriverError>> =
-        Lazy::new(|| CudaDevice::new(0));
+    pub static CUDA_DEVICE: Lazy<Result<Arc<CudaDevice>, DriverError>> = Lazy::new(|| {
+        let device = CudaDevice::new(0)?;
+        // warm-up: allocate and immediately free a tiny buffer
+        let _ = device.htod_copy(vec![0u8]).ok(); // copy 1 byte host -> device
+        device.synchronize().ok(); // force sync so context + stream are ready
+        Ok(device)
+    });
 
     #[allow(clippy::type_complexity)]
     pub static CUDA_HAL: Lazy<
@@ -41,6 +46,10 @@ pub mod gpu_prover {
             .as_ref()
             .map_err(|e| format!("Device init failed: {:?}", e))?;
         device.bind_to_thread()?;
+
+        // do a dummy warm-up op before returning HAL
+        let _ = device.htod_copy(vec![0u8]);
+        device.synchronize()?;
 
         CudaHalGL64::new()
             .map(|hal| Arc::new(Mutex::new(hal)))
