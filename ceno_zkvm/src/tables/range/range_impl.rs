@@ -2,7 +2,7 @@
 
 use ff_ext::{ExtensionField, SmallField};
 use gkr_iop::{error::CircuitBuilderError, tables::LookupTable};
-use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use p3::maybe_rayon::prelude::*;
 use std::collections::HashMap;
 use witness::{InstancePaddingStrategy, RowMajorMatrix, set_val};
 

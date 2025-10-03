@@ -31,14 +31,14 @@ To run an example in e2e, use the following command:
 
 ```sh
 # release mode
-RUST_LOG=info cargo run --release --package ceno_zkvm --bin e2e -- \
+RUST_LOG=info cargo run --release --features parallel --package ceno_zkvm --bin e2e -- \
     --platform=ceno \
     --hints=<hint value> \
     --public-io=<pub io> \
     examples/target/riscv32im-ceno-zkvm-elf/release/examples/<example name>
 
 # run a guest program with debug output (e.g., `debug_print` / `debug_println` visible), works in non-release mode
-RUST_LOG=info cargo run --package ceno_zkvm --bin e2e -- \
+RUST_LOG=info cargo run --features parallel --package ceno_zkvm --bin e2e -- \
     --platform=ceno \
     --hints=<hint value> \
     --public-io=<pub io> \
@@ -52,7 +52,7 @@ Below example command runs **2^10 (1024) Fibonacci steps** via `--hints=10`.
 The expected result is `4191`, which will be used as the `--public-io=4191`.
 
 ```sh
-RUST_LOG=info cargo run --release --package ceno_zkvm --bin e2e -- --platform=ceno --hints=10 --public-io=4191 examples/target/riscv32im-ceno-zkvm-elf/release/examples/fibonacci
+RUST_LOG=info cargo run --release --features parallel --package ceno_zkvm --bin e2e -- --platform=ceno --hints=10 --public-io=4191 examples/target/riscv32im-ceno-zkvm-elf/release/examples/fibonacci
 ```
 
 ## Building Ceno and running tests

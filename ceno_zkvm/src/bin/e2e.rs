@@ -16,9 +16,10 @@ use ceno_zkvm::{
 use clap::Parser;
 use ff_ext::{BabyBearExt4, ExtensionField, GoldilocksExt2};
 use gkr_iop::hal::ProverBackend;
-use mpcs::{
-    Basefold, BasefoldRSParams, PolynomialCommitmentScheme, SecurityLevel, Whir, WhirDefaultSpec,
-};
+use mpcs::{Basefold, BasefoldRSParams, PolynomialCommitmentScheme, SecurityLevel};
+
+#[cfg(feature = "whir")]
+use mpcs::{Whir, WhirDefaultSpec};
 use p3::field::FieldAlgebra;
 use serde::{Serialize, de::DeserializeOwned};
 use std::{fs, panic, panic::AssertUnwindSafe, path::PathBuf};
@@ -272,6 +273,7 @@ fn main() {
                 Checkpoint::Complete,
             )
         }
+        #[cfg(feature = "whir")]
         (PcsKind::Whir, FieldType::Goldilocks) => {
             let backend = create_backend(args.max_num_variables, args.security_level);
             let prover = create_prover(backend);
@@ -287,6 +289,7 @@ fn main() {
                 Checkpoint::PrepVerify, // FIXME: when whir and babybear is ready
             )
         }
+        #[cfg(feature = "whir")]
         (PcsKind::Whir, FieldType::BabyBear) => {
             let backend = create_backend(args.max_num_variables, args.security_level);
             let prover = create_prover(backend);
@@ -302,6 +305,8 @@ fn main() {
                 Checkpoint::PrepVerify, // FIXME: when whir and babybear is ready
             )
         }
+        #[cfg(not(feature = "whir"))]
+        (PcsKind::Whir, _) => todo!("enable `whir` feature"),
     };
 
     #[cfg(all(feature = "jemalloc", unix, not(test)))]

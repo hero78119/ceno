@@ -7,7 +7,9 @@ use ceno_zkvm::{
 };
 use clap::Parser;
 use ff_ext::{BabyBearExt4, ExtensionField, GoldilocksExt2};
-use mpcs::{Basefold, BasefoldRSParams, PolynomialCommitmentScheme, Whir, WhirDefaultSpec};
+use mpcs::{Basefold, BasefoldRSParams, PolynomialCommitmentScheme};
+#[cfg(feature = "whir")]
+use mpcs::{Whir, WhirDefaultSpec};
 use serde::Serialize;
 use std::{fs::File, path::PathBuf};
 
@@ -38,12 +40,16 @@ impl VerifyCmd {
             (PcsKind::Basefold, FieldType::BabyBear) => {
                 run_inner::<BabyBearExt4, Basefold<BabyBearExt4, BasefoldRSParams>>(self)
             }
+            #[cfg(feature = "whir")]
             (PcsKind::Whir, FieldType::Goldilocks) => {
                 run_inner::<GoldilocksExt2, Whir<GoldilocksExt2, WhirDefaultSpec>>(self)
             }
+            #[cfg(feature = "whir")]
             (PcsKind::Whir, FieldType::BabyBear) => {
                 run_inner::<BabyBearExt4, Whir<BabyBearExt4, WhirDefaultSpec>>(self)
             }
+            #[cfg(not(feature = "whir"))]
+            (PcsKind::Whir, _) => todo!("enable `whir` feature"),
         }
     }
 }

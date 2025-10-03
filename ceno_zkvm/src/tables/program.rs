@@ -13,8 +13,7 @@ use ff_ext::{ExtensionField, FieldInto, SmallField};
 use gkr_iop::utils::i64_to_base;
 use itertools::Itertools;
 use multilinear_extensions::{Expression, Fixed, ToExpr, WitIn};
-use p3::field::FieldAlgebra;
-use rayon::iter::{IndexedParallelIterator, ParallelIterator};
+use p3::{field::FieldAlgebra, maybe_rayon::prelude::*};
 use std::{collections::HashMap, marker::PhantomData};
 use witness::{InstancePaddingStrategy, RowMajorMatrix, set_fixed_val, set_val};
 

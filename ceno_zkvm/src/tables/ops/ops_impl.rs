@@ -3,7 +3,7 @@
 use ff_ext::{ExtensionField, SmallField};
 use gkr_iop::error::CircuitBuilderError;
 use itertools::Itertools;
-use rayon::iter::{IndexedParallelIterator, ParallelIterator};
+use p3::maybe_rayon::prelude::*;
 use std::collections::HashMap;
 use witness::{InstancePaddingStrategy, RowMajorMatrix, set_fixed_val, set_val};
 

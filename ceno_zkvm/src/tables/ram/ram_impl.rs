@@ -4,7 +4,7 @@ use ceno_emul::{Addr, Cycle, WORD_SIZE};
 use ff_ext::{ExtensionField, SmallField};
 use gkr_iop::error::CircuitBuilderError;
 use itertools::Itertools;
-use rayon::iter::{IndexedParallelIterator, ParallelIterator};
+use p3::maybe_rayon::prelude::*;
 use witness::{InstancePaddingStrategy, RowMajorMatrix, set_fixed_val, set_val};
 
 use crate::{

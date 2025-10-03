@@ -44,3 +44,4 @@ nightly-features = [
   "ff_ext/nightly-features",
   "mpcs/nightly-features",
 ]
+whir = ["ceno_zkvm/whir"]

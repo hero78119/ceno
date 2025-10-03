@@ -13,9 +13,9 @@ use ceno_zkvm::{
 use clap::Args;
 use ff_ext::{BabyBearExt4, ExtensionField, GoldilocksExt2};
 
-use mpcs::{
-    Basefold, BasefoldRSParams, PolynomialCommitmentScheme, SecurityLevel, Whir, WhirDefaultSpec,
-};
+use mpcs::{Basefold, BasefoldRSParams, PolynomialCommitmentScheme, SecurityLevel};
+#[cfg(feature = "whir")]
+use mpcs::{Whir, WhirDefaultSpec};
 use serde::Serialize;
 use std::{
     fs::File,
@@ -217,6 +217,7 @@ impl CenoOptions {
                     elf_path,
                 )
             }
+            #[cfg(feature = "whir")]
             (PcsKind::Whir, FieldType::Goldilocks) => {
                 keygen_inner::<GoldilocksExt2, Whir<GoldilocksExt2, WhirDefaultSpec>, P>(
                     self,
@@ -224,6 +225,7 @@ impl CenoOptions {
                     elf_path,
                 )
             }
+            #[cfg(feature = "whir")]
             (PcsKind::Whir, FieldType::BabyBear) => {
                 keygen_inner::<BabyBearExt4, Whir<BabyBearExt4, WhirDefaultSpec>, P>(
                     self,
@@ -231,6 +233,8 @@ impl CenoOptions {
                     elf_path,
                 )
             }
+            #[cfg(not(feature = "whir"))]
+            (PcsKind::Whir, _) => todo!("enable `whir` feature"),
         }
     }
 
@@ -258,6 +262,7 @@ impl CenoOptions {
                     Checkpoint::PrepWitnessGen,
                 )?;
             }
+            #[cfg(feature = "whir")]
             (PcsKind::Whir, FieldType::Goldilocks) => {
                 run_elf_inner::<GoldilocksExt2, Whir<GoldilocksExt2, WhirDefaultSpec>, P>(
                     self,
@@ -266,6 +271,7 @@ impl CenoOptions {
                     Checkpoint::PrepWitnessGen,
                 )?;
             }
+            #[cfg(feature = "whir")]
             (PcsKind::Whir, FieldType::BabyBear) => {
                 run_elf_inner::<BabyBearExt4, Whir<BabyBearExt4, WhirDefaultSpec>, P>(
                     self,
@@ -274,6 +280,8 @@ impl CenoOptions {
                     Checkpoint::PrepWitnessGen,
                 )?;
             }
+            #[cfg(not(feature = "whir"))]
+            (PcsKind::Whir, _) => todo!("enable `whir` feature"),
         };
         Ok(())
     }
@@ -302,6 +310,7 @@ impl CenoOptions {
                     Checkpoint::Complete,
                 )
             }
+            #[cfg(feature = "whir")]
             (PcsKind::Whir, FieldType::Goldilocks) => {
                 prove_inner::<GoldilocksExt2, Whir<GoldilocksExt2, WhirDefaultSpec>, P>(
                     self,
@@ -310,6 +319,7 @@ impl CenoOptions {
                     Checkpoint::PrepVerify, // FIXME: when whir and babybear is ready
                 )
             }
+            #[cfg(feature = "whir")]
             (PcsKind::Whir, FieldType::BabyBear) => {
                 prove_inner::<BabyBearExt4, Whir<BabyBearExt4, WhirDefaultSpec>, P>(
                     self,
@@ -318,6 +328,8 @@ impl CenoOptions {
                     Checkpoint::PrepVerify, // FIXME: when whir and babybear is ready
                 )
             }
+            #[cfg(not(feature = "whir"))]
+            (PcsKind::Whir, _) => todo!("enable `whir` feature"),
         }
     }
 }

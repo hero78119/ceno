@@ -44,8 +44,10 @@ use super::{
 };
 use crate::tables::DynamicRangeTableCircuit;
 use itertools::Itertools;
+#[cfg(feature = "whir")]
+use mpcs::WhirDefault;
 use mpcs::{
-    PolynomialCommitmentScheme, SecurityLevel, SecurityLevel::Conjecture100bits, WhirDefault,
+    BasefoldDefault, PolynomialCommitmentScheme, SecurityLevel, SecurityLevel::Conjecture100bits,
 };
 use multilinear_extensions::{mle::IntoMLE, util::ceil_log2};
 use p3::field::FieldAlgebra;
@@ -103,7 +105,7 @@ impl<E: ExtensionField, const L: usize, const RW: usize> Instruction<E> for Test
 #[test]
 fn test_rw_lk_expression_combination() {
     type E = GoldilocksExt2;
-    type Pcs = WhirDefault<E>;
+    type Pcs = BasefoldDefault<E>;
 
     fn test_rw_lk_expression_combination_inner<
         const L: usize,
@@ -260,7 +262,7 @@ const PROGRAM_CODE: [ceno_emul::Instruction; 4] = [
 #[test]
 fn test_single_add_instance_e2e() {
     type E = GoldilocksExt2;
-    type Pcs = WhirDefault<E>;
+    type Pcs = BasefoldDefault<E>;
 
     // set up program
     let program = Program::new(
@@ -272,7 +274,8 @@ fn test_single_add_instance_e2e() {
     );
 
     Pcs::setup(1 << MAX_NUM_VARIABLES, SecurityLevel::default()).expect("Basefold PCS setup");
-    let (pp, vp) = Pcs::trim((), 1 << MAX_NUM_VARIABLES).expect("Basefold trim");
+    let param = Pcs::setup(1 << MAX_NUM_VARIABLES, SecurityLevel::default()).unwrap();
+    let (pp, vp) = Pcs::trim(param, 1 << MAX_NUM_VARIABLES).expect("Basefold trim");
     let mut zkvm_cs = ZKVMConstraintSystem::default();
     // opcode circuits
     let add_config = zkvm_cs.register_opcode_circuit::<AddInstruction<E>>();
@@ -402,7 +405,7 @@ fn test_tower_proof_various_prod_size() {
         let last_layer_splitted_fanin: Vec<MultilinearExtension<E>> =
             vec![first.to_vec().into_mle(), second.to_vec().into_mle()];
         let layers = infer_tower_product_witness(num_vars, last_layer_splitted_fanin, 2);
-        let (rt_tower_p, tower_proof) = CpuTowerProver::create_proof::<E, WhirDefault<E>>(
+        let (rt_tower_p, tower_proof) = CpuTowerProver::create_proof::<E, BasefoldDefault<E>>(
             vec![TowerProverSpec {
                 witness: layers.clone(),
             }],

@@ -28,7 +28,6 @@ serde.workspace = true
 serde_json.workspace = true
 sumcheck.workspace = true
 transcript.workspace = true
-whir.workspace = true
 witness.workspace = true
 
 itertools.workspace = true
@@ -69,7 +68,7 @@ glob = "0.3"
 
 [features]
 bigint-rug = ["sp1-curves/bigint-rug"]
-default = ["forbid_overflow", "nightly-features", "u16limb_circuit", "parallel", "bigint-rug"]
+default = ["forbid_overflow", "nightly-features", "u16limb_circuit", "bigint-rug"]
 flamegraph = ["pprof2/flamegraph", "pprof2/criterion"]
 forbid_overflow = []
 goldilocks = ["forbid_overflow", "nightly-features", "parallel", "bigint-rug"]
@@ -77,17 +76,12 @@ gpu = ["gkr_iop/gpu", "dep:ceno_gpu"]
 jemalloc = ["dep:tikv-jemallocator", "dep:tikv-jemalloc-ctl"]
 jemalloc-prof = ["jemalloc", "tikv-jemallocator?/profiling"]
 nightly-features = [
-  "p3/nightly-features",
   "ff_ext/nightly-features",
-  "mpcs/nightly-features",
-  "multilinear_extensions/nightly-features",
-  "sumcheck/nightly-features",
-  "transcript/nightly-features",
-  "witness/nightly-features",
 ]
-parallel = ["whir/parallel", "p3/parallel", "multilinear_extensions/parallel", "mpcs/parallel"]
+parallel = ["sumcheck/parallel", "mpcs/parallel"]
 sanity-check = ["mpcs/sanity-check"]
 u16limb_circuit = ["ceno_emul/u16limb_circuit"]
+whir = ["mpcs/whir"]
 
 [[bench]]
 harness = false
